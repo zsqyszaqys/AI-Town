@@ -52,7 +52,7 @@ def log_affinity(npc_name:str, affinity:float, level:str):
     """记录当前好感度"""
     dialogue_logger.info(f"💖 当前好感度: {affinity:.1f}/100 ({level})")
 
-def log_generating_retrieval(npc_name:str, count:int, memories:list = None):
+def log_memory_retrieval(npc_name:str, count:int, memories:list = None):
     """记录记忆检索"""
     dialogue_logger.info(f"🧠 检索到{count}条相关记忆")
 
@@ -93,7 +93,7 @@ def log_affinity_change(affinity_result:dict):
             dialogue_logger.info(f"  ➡️ 好感度未变化 (当前: {affinity_result.get('affinity', 50.0):.1f})")
             dialogue_logger.info(f"  原因: {affinity_result.get('reason', '无')}")
 
-def log_memory(npc_name:str):
+def log_memory_saved(npc_name:str):
     """记录记忆保存"""
     dialogue_logger.info(f"  💾 对话已保存到{npc_name}的记忆中")
 

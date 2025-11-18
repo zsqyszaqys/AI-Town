@@ -199,7 +199,7 @@ class RelationshioManager:
             self,
             npc_name:str,
             player_message:str,
-            npc_responce:str,
+            npc_response:str,
             player_id:str = "player"
     )->Dict:
         """
