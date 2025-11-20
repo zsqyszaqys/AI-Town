@@ -1,6 +1,4 @@
 """赛博小镇 FastAPI 后端主程序"""
-from platform import version
-
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -12,12 +10,24 @@ from models import (
     NPCStatusResponse, NPCListResponse, NPCInfo
 )
 from agents import get_npc_manager
-from starlette.types import Lifespan
 from state_manager import get_state_manager
+
+# 全局管理器实例
+npc_manager = None
+state_manager = None
+
+def get_managers():
+    """获取管理器实例"""
+    global npc_manager, state_manager
+    if npc_manager is None:
+        npc_manager = get_npc_manager()
+    if state_manager is None:
+        state_manager = get_state_manager()
+    return npc_manager, state_manager
 
 # 生命周期管理
 @asynccontextmanager
-async def lifespan(app:FastAPI):
+async def lifespan(app: FastAPI):
     """应用生命周期管理"""
     # 启动时
     print("\n" + "=" * 60)
@@ -27,12 +37,13 @@ async def lifespan(app:FastAPI):
     # 验证配置
     settings.validate()
 
-    # 初始化NPC管理器
+    # 初始化全局管理器
+    global npc_manager, state_manager
     npc_manager = get_npc_manager()
-
-    # 初始化并启动状态管理器
     state_manager = get_state_manager()
-    await state_manager.start()
+
+    # 启动状态管理器
+    # await state_manager.start()
 
     print("\n✅ 所有服务已启动!")
     print(f"📡 API地址: http://{settings.API_HOST}:{settings.API_PORT}")
@@ -48,8 +59,8 @@ async def lifespan(app:FastAPI):
 
 # 创建FastAPI应用
 app = FastAPI(
-    title = settings.API_TITLE,
-    version= settings.API_VERSION,
+    title=settings.API_TITLE,
+    version=settings.API_VERSION,
     description="赛博小镇 - 基于HelloAgents的AI NPC对话系统",
     lifespan=lifespan
 )
@@ -63,23 +74,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 获取全局实例
-npc_manager = None
-state_manager = None
-
-def get_managers():
-    """获取管理器实例"""
-    global npc_manager, state_manager
-    if npc_manager is None:
-        npc_manager = get_npc_manager()
-
-    if state_manager is None:
-        state_manager = get_state_manager()
-
 # ==================== API路由 ====================
 @app.get("/")
 async def root():
-    """跟路径 - API信息"""
+    """根路径 - API信息"""
     return {
         "service": settings.API_TITLE,
         "version": settings.API_VERSION,
@@ -99,18 +97,12 @@ async def root():
 @app.get("/health")
 async def health_check():
     """健康检查"""
-    return {
-        "status": "healthy", "timestamp": "now"
-    }
+    return {"status": "healthy", "timestamp": "now"}
 
-@app.get("/chat", response_model=ChatResponse)
-async def chat_with_npc(request:ChatResponse):
-    """
-    与NPC对话接口
-    玩家与指定NPC进行实时对话，使用独立的Agent处理
-    """
-
-    npc_mgr = get_manegers()
+@app.post("/chat", response_model=ChatResponse)
+async def chat_with_npc(request: ChatRequest):
+    """与NPC对话接口"""
+    npc_mgr, _ = get_managers()
 
     # 验证NPC是否存在
     npc_info = npc_mgr.get_npc_info(request.npc_name)
@@ -124,22 +116,25 @@ async def chat_with_npc(request:ChatResponse):
         # 调用NPC Agent 处理对话
         response_text = npc_mgr.chat(request.npc_name, request.message)
 
-        return ChatResponse(
-            npc_name = request.npc_name,
-            npc_title = npc_info[title],
-            message = response_text,
-            success = True
+        result =  ChatResponse(
+            npc_name=request.npc_name,
+            npc_title=npc_info.get('title', 'NPC'),  # 修正字典访问
+            message=response_text,
+            success=True
         )
+        print(result)
+        return result
+
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"对话处理失败:{str(e)}"
+            detail=f"对话处理失败: {str(e)}"
         )
 
 @app.get("/npcs", response_model=NPCListResponse)
 async def list_npcs():
-    "获取所有的NPC列表"
-    npc_mgr,_ = get_managers()
+    """获取所有的NPC列表"""
+    npc_mgr, _ = get_managers()
 
     npcs_data = npc_mgr.get_all_npcs()
     npcs = [NPCInfo(**npc) for npc in npcs_data]
@@ -150,12 +145,9 @@ async def list_npcs():
     )
 
 @app.get("/npcs/status", response_model=NPCStatusResponse)
-async def git_npcs_status():
-    """
-    获取所有NPC当前状态
-    返回批量生成的NPC对话内容
-    """
-
+async def get_npcs_status():  # 修正函数名拼写
+    """获取所有NPC当前状态"""
+    _, state_mgr = get_managers()  # 修正变量名
     state = state_mgr.get_current_state()
 
     return NPCStatusResponse(
@@ -166,11 +158,7 @@ async def git_npcs_status():
 
 @app.get("/npcs/status/refresh")
 async def refresh_npcs_status():
-    """
-    强制刷新NPC状态
-
-    立即触发一次批量对话
-    """
+    """强制刷新NPC状态"""
     _, state_mgr = get_managers()
 
     await state_mgr.force_update()
@@ -181,10 +169,10 @@ async def refresh_npcs_status():
         "dialogues": state["dialogues"]
     }
 
-@app.get("npcs/{npc_name}")
-async def get_npc_info(npc_name:str):
+@app.get("/npcs/{npc_name}")  # 修正：添加缺失的斜杠
+async def get_npc_info(npc_name: str):
     """获取指定NPC的详细信息"""
-    npc_mgr, state_mgr = get_managers()
+    npc_mgr, _ = get_managers()
 
     npc_info = npc_mgr.get_npc_info(npc_name)
     if not npc_info:
@@ -192,32 +180,16 @@ async def get_npc_info(npc_name:str):
             status_code=404,
             detail=f"NPC '{npc_name}' 不存在"
         )
-    # 添加当前对话
-    try:
-        memories = npc_mgr.get_npc_memories(npc_name, limit=limit)
 
-        return {
-            "npc_name": npc_name,
-            "memories": memories,
-            "total": len(memories)
-        }
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"清空记忆失败: {str(e)}"
-        )
+    return {
+        "npc_info": npc_info,
+        "status": "active"
+    }
 
 @app.get("/npcs/{npc_name}/memories")
-async def get_npc_memories(npc_name:str, limit:int):
-    """
-    获取NPC的记忆列表
-    :param npc_name:NPC名称
-    :param limit:返回的记忆数量限制(默认十条)
-    :return:NPC的记忆列表
-    """
-
+async def get_npc_memories(npc_name: str, limit: int = 10):  # 添加默认值
+    """获取NPC的记忆列表"""
     npc_mgr, _ = get_managers()
-
 
     # 验证NPC是否存在
     npc_info = npc_mgr.get_npc_info(npc_name)
@@ -241,16 +213,8 @@ async def get_npc_memories(npc_name:str, limit:int):
         )
 
 @app.delete("/npcs/{npc_name}/memories")
-async def clear_npc_memories(npc_name:str, memory_type:str = None):
-    """清空NPC的记忆 (用于测试)
-
-      Args:
-          npc_name: NPC名称
-          memory_type: 记忆类型 (working/episodic), 不指定则清空所有
-
-      Returns:
-          操作结果
-      """
+async def clear_npc_memories(npc_name: str, memory_type: str = None):
+    """清空NPC的记忆 (用于测试)"""
     npc_mgr, _ = get_managers()
 
     # 验证NPC是否存在
@@ -269,7 +233,6 @@ async def clear_npc_memories(npc_name:str, memory_type:str = None):
             "npc_name": npc_name,
             "memory_type": memory_type or "all"
         }
-
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -277,12 +240,8 @@ async def clear_npc_memories(npc_name:str, memory_type:str = None):
         )
 
 @app.get("/npcs/{npc_name}/affinity")
-async def get_npc_affinity(npc_name:str, affinity:float, player_id:str = "player"):
-    """
-    获取NPC对玩家的好感度
-    :param npc_name:NPC名称
-    :param player_id:玩家ID
-    """
+async def get_npc_affinity(npc_name: str, player_id: str = "player"):
+    """获取NPC对玩家的好感度"""
     npc_mgr, _ = get_managers()
 
     # 验证NPC是否存在
@@ -292,6 +251,33 @@ async def get_npc_affinity(npc_name:str, affinity:float, player_id:str = "player
             status_code=404,
             detail=f"NPC '{npc_name}' 不存在"
         )
+
+    try:
+        affinity_info = npc_mgr.get_npc_affinity(npc_name, player_id)
+        return {
+            "npc_name": npc_name,
+            "player_id": player_id,
+            **affinity_info
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"获取好感度失败: {str(e)}"
+        )
+
+@app.put("/npcs/{npc_name}/affinity")
+async def set_npc_affinity(npc_name: str, affinity: float, player_id: str = "player"):
+    """设置NPC对玩家的好感度 (用于测试)"""
+    npc_mgr, _ = get_managers()
+
+    # 验证NPC是否存在
+    npc_info = npc_mgr.get_npc_info(npc_name)
+    if not npc_info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"NPC '{npc_name}' 不存在"
+        )
+
     # 验证好感度范围
     if affinity < 0 or affinity > 100:
         raise HTTPException(
@@ -317,74 +303,19 @@ async def get_npc_affinity(npc_name:str, affinity:float, player_id:str = "player
 
 @app.get("/affinities")
 async def get_all_affinities(player_id: str = "player"):
-    """获取所有NPC对玩家的好感度
-
-    Args:
-        player_id: 玩家ID (默认为"player")
-
-    Returns:
-        所有NPC的好感度信息
-    """
+    """获取所有NPC对玩家的好感度"""
     npc_mgr, _ = get_managers()
 
     try:
         affinities = npc_mgr.get_all_affinities(player_id)
-
         return {
             "player_id": player_id,
             "affinities": affinities
         }
-
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"获取好感度失败: {str(e)}"
-        )
-
-@app.put("/npcs/{npc_name}/affinity")
-async def set_npc_affinity(npc_name: str, affinity: float, player_id: str = "player"):
-    """设置NPC对玩家的好感度 (用于测试)
-
-    Args:
-        npc_name: NPC名称
-        affinity: 好感度值 (0-100)
-        player_id: 玩家ID (默认为"player")
-
-    Returns:
-        操作结果
-    """
-    npc_mgr, _ = get_managers()
-
-    # 验证NPC是否存在
-    npc_info = npc_mgr.get_npc_info(npc_name)
-    if not npc_info:
-        raise HTTPException(
-            status_code=404,
-            detail=f"NPC '{npc_name}' 不存在"
-        )
-
-    # 验证好感度范围
-    if affinity < 0 or affinity > 100:
-        raise HTTPException(
-            status_code=400,
-            detail="好感度必须在0-100之间"
-        )
-
-    try:
-        npc_mgr.set_npc_affinity(npc_name, affinity, player_id)
-        affinity_info = npc_mgr.get_npc_affinity(npc_name, player_id)
-
-        return {
-            "message": f"已设置{npc_name}对玩家的好感度",
-            "npc_name": npc_name,
-            "player_id": player_id,
-            **affinity_info
-        }
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"设置好感度失败: {str(e)}"
         )
 
 
@@ -397,6 +328,6 @@ if __name__ == '__main__':
         "main:app",
         host=settings.API_HOST,
         port=settings.API_PORT,
-        reload=True,  # 开发模式自动重载
+        reload=True,
         log_level="info"
     )

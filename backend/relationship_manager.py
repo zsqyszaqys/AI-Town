@@ -108,7 +108,7 @@ class RelationshipManager:
         - sentiment必须是positive/neutral/negative之一
         """
 
-    def gete_affinity(self, npc_name:str, player_id:str = "player")->float:
+    def get_affinity(self, npc_name:str, player_id:str = "player")->float:
         """
         获取好感度
         :param npc_name: NPC名称
@@ -124,7 +124,7 @@ class RelationshipManager:
 
         return self.affinity_scores[npc_name][player_id]
 
-    def set_affinaty(self, npc_name:str, affinaty:float, player_id:str = "player"):
+    def set_affinity(self, npc_name:str, affinaty:float, player_id:str = "player"):
         """
         设置好感度
         :param npc_name:NPC名称
@@ -195,7 +195,7 @@ class RelationshipManager:
         else:
             return "陌生"
 
-    def analyze_and_update_affinaty(
+    def analyze_and_update_affinity(
             self,
             npc_name:str,
             player_message:str,
@@ -228,11 +228,11 @@ class RelationshipManager:
 
             if analysis["should_change"]:
                 # 更新好感度
-                current_affinity = self.gete_affinity(npc_name, player_id)
+                current_affinity = self.get_affinity(npc_name, player_id)
                 new_affinity = current_affinity + analysis["change_amount"]
                 new_affinity = max(0.0, min(100.0, new_affinity))
 
-                self.set_affinaty(npc_name, new_affinity, player_id)
+                self.set_affinity(npc_name, new_affinity, player_id)
 
                 # 获取好感度等级
                 old_level = self.get_affinity_level(current_affinity)
@@ -294,7 +294,7 @@ class RelationshipManager:
         """
         result = {}
         for npc_name in self.affinity_scores:
-          affinity = self.gete_affinity(npc_name, player_id)
+          affinity = self.get_affinity(npc_name, player_id)
           result[npc_name] = {
                "affinity": affinity,
                 "level": self.get_affinity_level(affinity),

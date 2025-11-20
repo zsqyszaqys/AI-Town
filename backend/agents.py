@@ -138,7 +138,9 @@ class NPCAgentManager:
 
         # 初始化好感度管理器
         if self.llm:
-            self.relationship_manager =RelationshipManager(self.llm)
+            self.relationship_manager = RelationshipManager(self.llm)
+
+        self._create_agents()
 
     def _create_memory_manager(self, npc_name:str):
         """为NPC创建记忆管理器"""
@@ -147,7 +149,7 @@ class NPCAgentManager:
         os.makedirs(memory_dir, exist_ok=True)
 
         # 配置记忆系统
-        memory_congig = MemoryConfig(
+        memory_config = MemoryConfig(
             storage_path = memory_dir,
             working_memory_capacity = 10, # 最近十条对话
             working_memory_tokens = 2000, # 最多2000个token
@@ -159,7 +161,7 @@ class NPCAgentManager:
 
         # 创建记忆管理器
         memory_manager = MemoryManager(
-            config=memory_congig,
+            config=memory_config,
             user_id=npc_name,
             enable_working=True,# 启用工作记忆(短期)
             enable_episodic=True, # 启用情景记忆(长期)
@@ -181,7 +183,7 @@ class NPCAgentManager:
                 if self.llm:
                     agent = SimpleAgent(
                         name= f"{name}-{role['title']}",
-                        llm=str.llm,
+                        llm=self.llm,
                         system_prompt=system_prompt
                     )
                 else:
@@ -215,7 +217,7 @@ class NPCAgentManager:
         context_parts.append("") # 空行分离
         return "\n".join(context_parts)
 
-    def _save_conversation_to_memoty(
+    def _save_conversation_to_memory(
             self,
             memory_manager:MemoryManager,
             npc_name:str,
@@ -293,9 +295,9 @@ class NPCAgentManager:
             # 1.获取当前好感度
             affinity_context = ""
             if self.relationship_manager:
-                affinity = self.relationship_manager.gete_affinity(npc_name, player_id)
+                affinity = self.relationship_manager.get_affinity(npc_name, player_id)
                 affinity_level = self.relationship_manager.get_affinity_level(affinity)
-                affinity_modifier = self.relationship_manager.get_affinity_modifier()
+                affinity_modifier = self.relationship_manager.get_affinity_modifier(affinity)
                 affinity_context = f"""
                 【当前关系】
                 你与玩家的关系: {affinity_level} (好感度: {affinity:.0f}/100)
@@ -304,18 +306,18 @@ class NPCAgentManager:
                 log_affinity(npc_name, affinity, affinity_level)
 
             # 2.检索相关记忆
-            relevent_memories = []
+            relevant_memories = []
             if memory_manager:
-                relevent_memories = memory_manager.retrieve_memories(
+                relevant_memories = memory_manager.retrieve_memories(
                     query=message,
                     memory_types=["working", "episodic"],
                     limit=5,
                     min_importance=0.3 # 只检索重要性 >= 0.3 的记忆
                 )
-                log_memory_retrieval(npc_name, len(relevent_memories), relevent_memories)
+                log_memory_retrieval(npc_name, len(relevant_memories), relevant_memories)
 
             # 3.构建增强的提示词(包含好感度和上下文)
-            memory_context = self._build_memory_context(relevent_memories)
+            memory_context = self._build_memory_context(relevant_memories)
 
             enhanced_message = affinity_context
             if memory_context:
@@ -330,7 +332,7 @@ class NPCAgentManager:
             # 5.分析并更新好感度
             log_analyzing_affinity()
             if self.relationship_manager:
-                affinity_result = self.relationship_manager.analyze_and_update_affinaty(
+                affinity_result = self.relationship_manager.analyze_and_update_affinity(
                     npc_name=npc_name,
                     player_message=message,
                     npc_response=response,
@@ -344,7 +346,7 @@ class NPCAgentManager:
 
             # 6.保存对话到记忆(包含好感度消息)
             if memory_manager:
-                self._save_conversation_to_memoty(
+                self._save_conversation_to_memory(
                     memory_manager=memory_manager,
                     npc_name=npc_name,
                     player_message=message,
@@ -366,6 +368,7 @@ class NPCAgentManager:
 
     def get_npc_info(self, npc_name:str)->Dict[str, str]:
         """获取NPC信息"""
+
         if npc_name not in NPC_ROLES:
             return {}
 
@@ -416,7 +419,7 @@ class NPCAgentManager:
             print(f"❌ 获取{npc_name}记忆失败: {e}")
             return []
 
-    def clear_npc_memoriy(self, npc_name:str, memory_type:Optional[str] = None):
+    def clear_npc_memory(self, npc_name:str, memory_type:Optional[str] = None):
         """清空NPC的记忆(用于调试)"""
         if npc_name not in self.memories:
             print(f"❌ NPC '{npc_name}' 不存在")
@@ -456,9 +459,9 @@ class NPCAgentManager:
                 "modifier": "礼貌友善,正常交流,保持专业"
             }
 
-        affinity = self.relationship_manager.gete_affinity(npc_name, player_id)
+        affinity = self.relationship_manager.get_affinity(npc_name, player_id)
         level =  self.relationship_manager.get_affinity_level(affinity)
-        modifire = self.relationship_manager.get_affinity_modifier(affinity)
+        modifier = self.relationship_manager.get_affinity_modifier(affinity)
 
         return {
             "affinity": affinity,
@@ -466,7 +469,7 @@ class NPCAgentManager:
             "modifier": modifier
         }
 
-    def get_all_afinities(self, player_id:str = "player")->Dict[str, Dict]:
+    def get_all_affinities(self, player_id:str = "player")->Dict[str, Dict]:
         """
         获取所有的NPC的好感度信息
         :param player_id: 玩家ID
@@ -489,7 +492,7 @@ class NPCAgentManager:
             print("❌ 好感度系统未初始化")
             return
 
-        self.relationship_manager.set_affinaty(npc_name, affinity, player_id=player_id)
+        self.relationship_manager.set_affinity(npc_name, affinity, player_id=player_id)
         level = self.relationship_manager.get_affinity_level(affinity)
 
         print(f"✅ 已设置{npc_name}对玩家的好感度: {affinity:.1f} ({level})")

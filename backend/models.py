@@ -28,7 +28,7 @@ class ChatResponse(BaseModel):
     class config:
         json_shema_extra = {
             "example": {
-                "npc_name": "张三",
+                "npc_name": "李四A",
                 "npc_title": "Python工程师",
                 "message": "你好!我正在写代码,调试一个多智能体系统的bug。",
                 "success": True
@@ -64,5 +64,5 @@ class NPCStatusResponse(BaseModel):
 
 class NPCListResponse(BaseModel):
     """NPC列表响应"""
-    npsc:List[NPCInfo] = Field(..., description="NPC列表")
-    totol:int = Field(..., description="NPC总数")
+    npcs:List[NPCInfo] = Field(..., description="NPC列表")
+    total:int = Field(..., description="NPC总数")

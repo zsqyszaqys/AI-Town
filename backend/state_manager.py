@@ -48,7 +48,7 @@ class NPCStateManager:
         await self._update_npc_state()
 
         # 启动定时更新任务
-        self._update_task = asyncio.create_task(self._auto_update_loop())
+        # self._update_task = asyncio.create_task(self._auto_update_loop())
 
     async def stop(self):
         """停止后台更新任务"""
