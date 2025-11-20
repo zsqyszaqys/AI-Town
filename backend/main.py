@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
     state_manager = get_state_manager()
 
     # 启动状态管理器
-    # await state_manager.start()
+     await state_manager.start()
 
     print("\n✅ 所有服务已启动!")
     print(f"📡 API地址: http://{settings.API_HOST}:{settings.API_PORT}")

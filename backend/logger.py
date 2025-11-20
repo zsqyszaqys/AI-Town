@@ -66,7 +66,7 @@ def log_generating_response():
     """记录正在生成回复"""
     dialogue_logger.info("🤖 正在生成回复...")
 
-def log_npc_response(npc_name:str, responce:str):
+def log_npc_response(npc_name:str, response:str):
     """记录NPC回复"""
     dialogue_logger.info(f"💬 {npc_name}回复: {response}")
 

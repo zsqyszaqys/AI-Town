@@ -119,7 +119,7 @@ class RelationshipManager:
         if npc_name not in self.affinity_scores:
             self.affinity_scores[npc_name] = {}
 
-        if player_id not in self.affinity_scores[npc_name][player_id]:
+        if player_id not in self.affinity_scores[npc_name]:
             self.affinity_scores[npc_name][player_id] = 50.0 # 初始好感度为0
 
         return self.affinity_scores[npc_name][player_id]
