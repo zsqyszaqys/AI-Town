@@ -9,7 +9,7 @@ from typing import Dict, Optional, Tuple
 import json
 import re
 
-class RelationshioManager:
+class RelationshipManager:
     """NPC好感度管理器
        功能:
        - 管理NPC与玩家的好感度 (0-100)

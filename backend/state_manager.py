@@ -25,7 +25,7 @@ class NPCStateManager:
         self.batch_generator = get_batch_generator()
 
         # 当前状态
-        self.currem_dialogues:Dict[str, str] = {}
+        self.current_dialogues:Dict[str, str] = {}
         self.last_update:Optional[datetime] = None
         self.next_update_time:Optional[datetime] = None
 
@@ -48,7 +48,7 @@ class NPCStateManager:
         await self._update_npc_state()
 
         # 启动定时更新任务
-        self._update_task = asyncio.create_task(self, )
+        self._update_task = asyncio.create_task(self._auto_update_loop())
 
     async def stop(self):
         """停止后台更新任务"""
@@ -87,7 +87,7 @@ class NPCStateManager:
             new_dialogues = self.batch_generator.generate_batch_dialogue()
 
             # 更新状态
-            self.currem_dialogue = new_dialogues
+            self.current_dialogues = new_dialogues
             self.last_update = datetime.now()
             self.next_update_time = datetime.now()
 
@@ -116,12 +116,14 @@ class NPCStateManager:
 
     def get_npc_dialogue(self, npc_name:str)->Optional[str]:
         """获取指定NPC的当前对话"""
-        return self.currem_dialogues.get(npc_name)
+        return self.current_dialogues.get(npc_name)
 
     async def force_update(self):
         """强制立即更新"""
         print("⚡ 强制更新NPC状态...")
         await self._update_npc_state()
+
+
 
 # 全局单例
 _state_manager = None

@@ -10,7 +10,6 @@ from hello_agents import SimpleAgent, HelloAgentsLLM
 from hello_agents.memory import MemoryManager, MemoryConfig, MemoryItem, EpisodicMemory
 from typing import Dict, List, Optional
 from datetime import datetime
-from relationship_manager import RelationshioManager
 from relationship_manager import RelationshipManager
 from logger import (
     log_dialogue_start, log_affinity, log_memory_retrieval,
@@ -135,11 +134,11 @@ class NPCAgentManager:
 
         self.agents: Dict[str, SimpleAgent] = {}
         self.memories: Dict[str, MemoryManager] = {}
-        self.relationship_manager: Optional[RelationshioManager] = None
+        self.relationship_manager: Optional[RelationshipManager] = None
 
         # 初始化好感度管理器
         if self.llm:
-            self.relationship_manager =RelationshioManager(self.llm)
+            self.relationship_manager =RelationshipManager(self.llm)
 
     def _create_memory_manager(self, npc_name:str):
         """为NPC创建记忆管理器"""

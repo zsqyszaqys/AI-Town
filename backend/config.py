@@ -1,7 +1,11 @@
 """配置文件"""
 
 import os
+from dotenv import load_dotenv
 from typing import Optional
+
+# 自动加载当前目录下的 .env 文件
+load_dotenv()
 
 class Settings:
     """应用配置"""
@@ -37,3 +41,4 @@ class Settings:
         return True
 
 settings = Settings()
+

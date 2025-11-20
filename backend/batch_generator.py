@@ -97,7 +97,7 @@ class NPCBatchGenerator:
             context = self._get_current_contexts()
 
         # 构建NPC描述
-        npc_descripion = []
+        npc_descriptions = []
         for name, cfg in self.npc_configs.items():
             desc = f"- {name}({cfg['title']}): 在{cfg['location']}{cfg['activity']},性格{cfg['personality']}"
             npc_descriptions.append(desc)
@@ -128,6 +128,7 @@ class NPCBatchGenerator:
 
         请生成(只返回JSON,不要其他内容):
         """
+        return prompt
 
     def _parse_response(self, response:str)->Optional[Dict[str, str]]:
         """解析LLM响应"""
