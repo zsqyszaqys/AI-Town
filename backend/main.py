@@ -43,7 +43,7 @@ async def lifespan(app: FastAPI):
     state_manager = get_state_manager()
 
     # 启动状态管理器
-     await state_manager.start()
+    await state_manager.start()
 
     print("\n✅ 所有服务已启动!")
     print(f"📡 API地址: http://{settings.API_HOST}:{settings.API_PORT}")
@@ -101,6 +101,8 @@ async def health_check():
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat_with_npc(request: ChatRequest):
+    print(f"前端发出chat请求，内容为{request}")
+
     """与NPC对话接口"""
     npc_mgr, _ = get_managers()
 
@@ -133,6 +135,8 @@ async def chat_with_npc(request: ChatRequest):
 
 @app.get("/npcs", response_model=NPCListResponse)
 async def list_npcs():
+    print("前端发来npcs请求")
+
     """获取所有的NPC列表"""
     npc_mgr, _ = get_managers()
 
@@ -145,7 +149,9 @@ async def list_npcs():
     )
 
 @app.get("/npcs/status", response_model=NPCStatusResponse)
-async def get_npcs_status():  # 修正函数名拼写
+async def get_npcs_status():
+    print("前端发来npcs_status请求")
+
     """获取所有NPC当前状态"""
     _, state_mgr = get_managers()  # 修正变量名
     state = state_mgr.get_current_state()
@@ -158,6 +164,8 @@ async def get_npcs_status():  # 修正函数名拼写
 
 @app.get("/npcs/status/refresh")
 async def refresh_npcs_status():
+    print("前端发来refresh请求")
+
     """强制刷新NPC状态"""
     _, state_mgr = get_managers()
 
@@ -171,6 +179,8 @@ async def refresh_npcs_status():
 
 @app.get("/npcs/{npc_name}")  # 修正：添加缺失的斜杠
 async def get_npc_info(npc_name: str):
+    print("前端发来npc_info请求")
+
     """获取指定NPC的详细信息"""
     npc_mgr, _ = get_managers()
 
@@ -187,7 +197,9 @@ async def get_npc_info(npc_name: str):
     }
 
 @app.get("/npcs/{npc_name}/memories")
-async def get_npc_memories(npc_name: str, limit: int = 10):  # 添加默认值
+async def get_npc_memories(npc_name: str, limit: int = 10):
+    print(f"前端发来{npc_name}memories请求")
+
     """获取NPC的记忆列表"""
     npc_mgr, _ = get_managers()
 
@@ -214,6 +226,8 @@ async def get_npc_memories(npc_name: str, limit: int = 10):  # 添加默认值
 
 @app.delete("/npcs/{npc_name}/memories")
 async def clear_npc_memories(npc_name: str, memory_type: str = None):
+    print("前端发来memories请求")
+
     """清空NPC的记忆 (用于测试)"""
     npc_mgr, _ = get_managers()
 
@@ -241,6 +255,8 @@ async def clear_npc_memories(npc_name: str, memory_type: str = None):
 
 @app.get("/npcs/{npc_name}/affinity")
 async def get_npc_affinity(npc_name: str, player_id: str = "player"):
+    print(f"前端发来{npc_name}affinity请求")
+
     """获取NPC对玩家的好感度"""
     npc_mgr, _ = get_managers()
 
@@ -267,6 +283,8 @@ async def get_npc_affinity(npc_name: str, player_id: str = "player"):
 
 @app.put("/npcs/{npc_name}/affinity")
 async def set_npc_affinity(npc_name: str, affinity: float, player_id: str = "player"):
+    print(f"前端发来set{npc_name}affinity请求")
+
     """设置NPC对玩家的好感度 (用于测试)"""
     npc_mgr, _ = get_managers()
 
@@ -303,6 +321,8 @@ async def set_npc_affinity(npc_name: str, affinity: float, player_id: str = "pla
 
 @app.get("/affinities")
 async def get_all_affinities(player_id: str = "player"):
+    print("前端发来get_allaffinity请求")
+
     """获取所有NPC对玩家的好感度"""
     npc_mgr, _ = get_managers()
 

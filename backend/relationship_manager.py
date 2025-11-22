@@ -1,11 +1,12 @@
 """NPC好感度管理系统"""
 
-import sys, os
+import os
+import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'HelloAgents'))
 
 from hello_agents import SimpleAgent, HelloAgentsLLM
-from typing import Dict, Optional, Tuple
+from typing import Dict
 import json
 import re
 
@@ -112,7 +113,7 @@ class RelationshipManager:
         """
         获取好感度
         :param npc_name: NPC名称
-        :param palyer_id: 玩家ID
+        :param player_id: 玩家ID
         :return:好感度(0-100)
         """
 
@@ -206,7 +207,7 @@ class RelationshipManager:
         分析对话并更新好感度
         :param npc_name:NPC名称
         :param player_message:玩家消息
-        :param npc_responce:NPC回复
+        :param npc_response:NPC回复
         :param player_id:玩家ID
         :return:分析结果字典
         """
@@ -221,7 +222,7 @@ class RelationshipManager:
         """
         try:
             # 调用分析agent
-            response = self.analyzer_agent(prompt)
+            response = self.analyzer_agent.run(prompt)
 
             # 解析json响应
             analysis = self._parse_analysis(response)
